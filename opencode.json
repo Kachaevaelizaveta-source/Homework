@@ -1,0 +1,67 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "llm-proxy": {
+      "npm": "@ai-sdk/anthropic",
+      "name": "LLM Proxy",
+      "options": {
+        "baseURL": "https://llm-proxy.spirit.culab.ru/v1",
+        "apiKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2NvdW50X2lkIjo3NzEsImV4cCI6NDk0NDAyMDg2MywiaWF0IjoxNzkwNDIwODYzLCJpZCI6NzY1LCJpc3MiOiJsbG0tcHJveHkifQ.w85i5U7LTYX2uE6z3kojSo3rCzTZJMr6ihWy7qXw04M",
+        "headers": {
+          "Authorization": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2NvdW50X2lkIjo2MzIsImV4cCI6NDk0MzY3MDMyMywiaWF0IjoxNzkwMDcwMzIzLCJpZCI6NjI0LCJpc3MiOiJsbG0tcHJveHkifQ.QTQgfA-_QSajtnTuUFDYX8XXXRFPFAJdqgPTg4gSHqo"
+        }
+      },
+      "models": {
+        "claude-opus-4.8": {
+          "name": "Claude Opus 4.8",
+          "modelID": "claude-opus-4.8",
+          "attachment": true,
+          "modalities": {
+            "input": [
+              "text",
+              "image"
+            ],
+            "output": [
+              "text"
+            ]
+          },
+          "limit": {
+            "context": 1000000,
+            "output": 128000
+          }
+        }
+      }
+    },
+    "llm-proxy-openai": {
+      "npm": "@ai-sdk/openai",
+      "name": "LLM Proxy (OpenAI)",
+      "options": {
+        "baseURL": "https://llm-proxy.spirit.culab.ru",
+        "apiKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2NvdW50X2lkIjo3NzEsImV4cCI6NDk0NDAyMDg2MywiaWF0IjoxNzkwNDIwODYzLCJpZCI6NzY1LCJpc3MiOiJsbG0tcHJveHkifQ.w85i5U7LTYX2uE6z3kojSo3rCzTZJMr6ihWy7qXw04M"
+      },
+      "models": {
+        "gpt-5.6-sol": {
+          "name": "GPT-5.6 Sol",
+          "tool_call": true,
+          "reasoning": true,
+          "attachment": true,
+          "modalities": {
+            "input": [
+              "text",
+              "image"
+            ],
+            "output": [
+              "text"
+            ]
+          },
+          "limit": {
+            "context": 1050000,
+            "input": 922000,
+            "output": 128000
+          }
+        }
+      }
+    }
+  },
+  "model": "llm-proxy/claude-opus-4.8"
+}
