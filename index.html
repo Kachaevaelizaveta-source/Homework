@@ -15,125 +15,57 @@
         <div>
           <p class="eyebrow">CUSTOMER PURCHASE INTELLIGENCE</p>
           <h1>Дашборд покупок</h1>
-          <p class="subtitle">Основные метрики и структура потребления по доставленным заказам</p>
+          <p class="subtitle">Метрики и структура потребления по доставленным заказам</p>
         </div>
-        <div class="status-badge"><span class="status-dot"></span> Только доставленные заказы</div>
+        <div class="status-badge"><span class="status-dot"></span> Статус: доставлен</div>
       </header>
 
       <main v-if="!loading && !error">
+        <section class="control-bar panel">
+          <div>
+            <span class="control-label">Фильтр по категории</span>
+            <select v-model="selectedCategory" class="category-select" aria-label="Фильтр по категории">
+              <option value="all">Все категории</option>
+              <option v-for="category in categories" :key="category" :value="category">{{ category }}</option>
+            </select>
+          </div>
+          <div class="control-note"><b>{{ formatInteger(filteredRows.length) }}</b> строк · <b>{{ formatInteger(uniqueOrders) }}</b> заказов · период графиков: последние 24 месяца</div>
+        </section>
+
         <section class="summary-grid" aria-label="Ключевые показатели">
-          <article class="summary-card summary-card--accent">
-            <span class="summary-label">Строк со статусом «доставлен»</span>
-            <strong>{{ formatInteger(deliveredRows.length) }}</strong>
-            <small>проверено по полю «Статус»</small>
-          </article>
-          <article class="summary-card">
-            <span class="summary-label">Уникальных заказов</span>
-            <strong>{{ formatInteger(uniqueOrders) }}</strong>
-            <small>среди доставленных</small>
-          </article>
-          <article class="summary-card">
-            <span class="summary-label">Сумма трат</span>
-            <strong>{{ formatCurrency(totalAmount) }}</strong>
-            <small>по доставленным заказам</small>
-          </article>
-          <article class="summary-card">
-            <span class="summary-label">Средняя скидка</span>
-            <strong>{{ formatCurrency(averageDiscount) }}</strong>
-            <small>на строку доставленного заказа</small>
-          </article>
+          <article class="summary-card summary-card--accent"><span class="summary-label">Заказы</span><strong>{{ formatInteger(uniqueOrders) }}</strong><small>{{ currentMonthLabel }}: {{ formatInteger(currentMetrics.orders) }}</small></article>
+          <article class="summary-card"><span class="summary-label">Сумма трат</span><strong>{{ formatCurrency(totalAmount) }}</strong><small>{{ currentMonthLabel }}: {{ formatCurrency(currentMetrics.spend) }}</small></article>
+          <article class="summary-card"><span class="summary-label">Средняя скидка</span><strong>{{ formatCurrency(averageDiscount) }}</strong><small>{{ currentMonthLabel }}: {{ formatCurrency(currentMetrics.discount) }}</small></article>
+          <article class="summary-card"><span class="summary-label">Товаров заказано</span><strong>{{ formatInteger(totalQuantity) }}</strong><small>{{ formatInteger(uniqueProducts) }} уникальных позиций</small></article>
         </section>
 
         <section class="panel monthly-panel">
-          <div class="section-heading">
-            <div>
-              <h2>Динамика по месяцам</h2>
-              <p>Количество заказов, сумма трат и средняя скидка</p>
-            </div>
-            <span class="period-badge">{{ periodLabel }}</span>
-          </div>
+          <div class="section-heading"><div><h2>Основные метрики · последние 24 месяца</h2><p>Текущее значение показано в карточках, ниже — месячная динамика выбранного среза.</p></div><span class="period-badge">{{ periodLabel }}</span></div>
           <div class="metric-charts">
-            <article class="metric-chart-card">
-              <div class="metric-chart-title"><span class="legend-dot legend-dot--purple"></span>Заказы</div>
-              <strong>{{ formatDecimal(averageMonthlyOrders) }} <small>в среднем / мес.</small></strong>
-              <svg ref="ordersChart" class="metric-chart" role="img" aria-label="Динамика количества заказов по месяцам"></svg>
-            </article>
-            <article class="metric-chart-card">
-              <div class="metric-chart-title"><span class="legend-dot legend-dot--orange"></span>Сумма трат</div>
-              <strong>{{ formatCurrency(averageMonthlySpend) }} <small>в среднем / мес.</small></strong>
-              <svg ref="spendChart" class="metric-chart" role="img" aria-label="Динамика суммы трат по месяцам"></svg>
-            </article>
-            <article class="metric-chart-card">
-              <div class="metric-chart-title"><span class="legend-dot legend-dot--green"></span>Средняя скидка</div>
-              <strong>{{ formatCurrency(averageDiscount) }} <small>на позицию</small></strong>
-              <svg ref="discountChart" class="metric-chart" role="img" aria-label="Динамика средней скидки по месяцам"></svg>
-            </article>
+            <article class="metric-chart-card"><div class="metric-chart-title"><span class="legend-dot legend-dot--purple"></span>Заказы</div><strong>{{ formatInteger(currentMetrics.orders) }} <small>текущий месяц</small></strong><svg ref="ordersChart" class="metric-chart" aria-label="Динамика заказов"></svg></article>
+            <article class="metric-chart-card"><div class="metric-chart-title"><span class="legend-dot legend-dot--orange"></span>Сумма трат</div><strong>{{ formatCurrency(currentMetrics.spend) }} <small>текущий месяц</small></strong><svg ref="spendChart" class="metric-chart" aria-label="Динамика трат"></svg></article>
+            <article class="metric-chart-card"><div class="metric-chart-title"><span class="legend-dot legend-dot--green"></span>Средняя скидка</div><strong>{{ formatCurrency(currentMetrics.discount) }} <small>текущий месяц</small></strong><svg ref="discountChart" class="metric-chart" aria-label="Динамика скидки"></svg></article>
           </div>
         </section>
 
-        <section class="ranking-grid">
-          <article class="panel ranking-panel">
-            <div class="section-heading section-heading--compact">
-            <div><h2>Чаще всего заказывает</h2><p>Топ товарных позиций по количеству · без «Доставка» и «Упаковка»</p></div>
-              <span class="section-icon">↗</span>
-            </div>
-            <div class="bar-list">
-              <div class="bar-row" v-for="(item, index) in topByQuantity" :key="`qty-${item.name}`">
-                <span class="rank">{{ String(index + 1).padStart(2, '0') }}</span>
-                <div class="bar-content">
-                  <div class="bar-label"><span class="product-label"><img v-if="item.image" :src="item.image" :alt="item.name" class="product-thumb">{{ item.name }}</span><b>{{ formatInteger(item.quantity) }} шт.</b></div>
-                  <div class="bar-track"><span class="bar-fill bar-fill--purple" :style="{ width: `${item.quantity / maxQuantity * 100}%` }"></span></div>
-                </div>
-              </div>
-            </div>
-          </article>
-
-          <article class="panel ranking-panel">
-            <div class="section-heading section-heading--compact">
-            <div><h2>Больше всего тратит</h2><p>Топ товарных позиций по сумме · без сервисных позиций</p></div>
-              <span class="section-icon">₽</span>
-            </div>
-            <div class="bar-list">
-              <div class="bar-row" v-for="(item, index) in topBySpend" :key="`spend-${item.name}`">
-                <span class="rank">{{ String(index + 1).padStart(2, '0') }}</span>
-                <div class="bar-content">
-                  <div class="bar-label"><span class="product-label"><img v-if="item.image" :src="item.image" :alt="item.name" class="product-thumb">{{ item.name }}</span><b>{{ formatCurrency(item.spend) }}</b></div>
-                  <div class="bar-track"><span class="bar-fill bar-fill--orange" :style="{ width: `${item.spend / maxSpend * 100}%` }"></span></div>
-                </div>
-              </div>
-            </div>
-          </article>
+        <section class="panel items-panel">
+          <div class="section-heading"><div><h2>Потребление по позициям</h2><p>Наведите на столбец: увидите количество, траты и динамику цены позиции по месяцам.</p></div><div class="segmented"><button :class="{active: itemMetric === 'quantity'}" @click="itemMetric = 'quantity'">Количество, шт.</button><button :class="{active: itemMetric === 'spend'}" @click="itemMetric = 'spend'">Траты, ₽</button></div></div>
+          <div class="item-chart-wrap"><svg ref="itemsChart" class="items-chart" aria-label="Анализ потребления по товарным позициям"></svg><div v-if="tooltip.visible" class="item-tooltip" :style="{left: `${tooltip.x}px`, top: `${tooltip.y}px`}"><div class="tooltip-title"><img v-if="tooltip.item.image" :src="tooltip.item.image" class="tooltip-image"><b>{{ tooltip.item.name }}</b></div><div class="tooltip-grid"><span>Заказано</span><b>{{ formatInteger(tooltip.item.quantity) }} шт.</b><span>Потрачено</span><b>{{ formatCurrency(tooltip.item.spend) }}</b><span>Средняя цена</span><b>{{ formatCurrency(tooltip.item.avgPrice) }}</b><span>Изменение цены</span><b :class="tooltip.item.priceChange >= 0 ? 'positive' : 'negative'">{{ signedCurrency(tooltip.item.priceChange) }}</b></div><div class="tooltip-caption">Динамика средней цены за 24 месяца</div><svg ref="priceTooltipChart" class="tooltip-chart"></svg></div></div>
         </section>
 
         <section class="panel category-panel">
-          <div class="section-heading">
-            <div><h2>Потребление в разрезе категорий</h2><p>Категории отсортированы по сумме трат. Внутри — самая часто заказанная товарная позиция.</p></div>
-            <span class="record-count">{{ formatInteger(categorySummary.length) }} категорий</span>
-          </div>
-          <div class="category-table-wrap">
-            <table class="category-table">
-              <thead><tr><th>Категория</th><th>Топ-позиция</th><th class="numeric">Заказано, шт.</th><th class="numeric">Сумма</th><th class="share-cell">Доля трат</th></tr></thead>
-              <tbody>
-                <tr v-for="category in categorySummary" :key="category.name">
-                  <td><span class="category-mark"></span><b>{{ category.name }}</b></td>
-                  <td class="top-category-product">{{ category.topProduct }}</td>
-                  <td class="numeric">{{ formatInteger(category.quantity) }}</td>
-                  <td class="numeric amount">{{ formatCurrency(category.spend) }}</td>
-                  <td class="share-cell"><div class="share-line"><span class="share-track"><i :style="{ width: `${category.share}%` }"></i></span><b>{{ category.share.toFixed(1) }}%</b></div></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+          <div class="section-heading"><div><h2>Категории</h2><p>Наглядное сравнение категорий по заказанному количеству, сумме и доле трат.</p></div><span class="record-count">{{ formatInteger(categorySummary.length) }} категорий</span></div>
+          <div class="category-cards"><button v-for="category in categorySummary" :key="category.name" class="category-card" :class="{selected: selectedCategory === category.name}" @click="selectedCategory = selectedCategory === category.name ? 'all' : category.name"><div class="category-card-head"><span class="category-mark"></span><b>{{ category.name }}</b><span class="category-share">{{ category.share.toFixed(1) }}%</span></div><div class="category-progress"><i :style="{width: `${category.share}%`}"></i></div><div class="category-stats"><span><b>{{ formatInteger(category.quantity) }}</b> шт.</span><span><b>{{ formatCurrency(category.spend) }}</b></span></div><small>Топ: {{ category.topProduct }}</small></button></div>
+        </section>
+
+        <section class="ranking-grid">
+          <article class="panel ranking-panel"><div class="section-heading section-heading--compact"><div><h2>Чаще всего заказывает</h2><p>Без сервисных позиций «Доставка» и «Упаковка»</p></div></div><div class="bar-list"><div class="bar-row" v-for="(item, index) in topByQuantity" :key="`qty-${item.name}`"><span class="rank">{{ String(index + 1).padStart(2, '0') }}</span><div class="bar-content"><div class="bar-label"><span class="product-label"><img v-if="item.image" :src="item.image" class="product-thumb">{{ item.name }}</span><b>{{ formatInteger(item.quantity) }} шт.</b></div><div class="bar-track"><span class="bar-fill bar-fill--purple" :style="{width: `${item.quantity / maxQuantity * 100}%`}"></span></div></div></div></div></article>
+          <article class="panel ranking-panel"><div class="section-heading section-heading--compact"><div><h2>Больше всего тратит</h2><p>Топ позиций по сумме покупок</p></div></div><div class="bar-list"><div class="bar-row" v-for="(item, index) in topBySpend" :key="`spend-${item.name}`"><span class="rank">{{ String(index + 1).padStart(2, '0') }}</span><div class="bar-content"><div class="bar-label"><span class="product-label"><img v-if="item.image" :src="item.image" class="product-thumb">{{ item.name }}</span><b>{{ formatCurrency(item.spend) }}</b></div><div class="bar-track"><span class="bar-fill bar-fill--orange" :style="{width: `${item.spend / maxSpend * 100}%`}"></span></div></div></div></div></article>
         </section>
       </main>
-
-      <div v-else-if="loading" class="message">Загрузка данных…</div>
-      <div v-else class="message message--error">{{ error }}</div>
+      <div v-else-if="loading" class="message">Загрузка данных…</div><div v-else class="message message--error">{{ error }}</div>
       <footer class="page-footer">Источник: {{ sourceFile }} · В расчёты включены только строки со статусом «доставлен»</footer>
     </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
-    <script src="app.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js"></script><script src="https://cdn.jsdelivr.net/npm/d3@7"></script><script src="app.js"></script>
   </body>
 </html>
