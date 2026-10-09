@@ -33,10 +33,10 @@
         </section>
 
         <section class="summary-grid" aria-label="Ключевые показатели">
-          <article class="summary-card summary-card--accent"><span class="summary-label">Заказы</span><strong>{{ formatInteger(uniqueOrders) }}</strong><small>{{ currentMonthLabel }}: {{ formatInteger(currentMetrics.orders) }}</small></article>
-          <article class="summary-card"><span class="summary-label">Сумма трат</span><strong>{{ formatCurrency(totalAmount) }}</strong><small>{{ currentMonthLabel }}: {{ formatCurrency(currentMetrics.spend) }}</small></article>
+          <article class="summary-card summary-card--accent"><span class="summary-label">Товаров со статусом «доставлен»</span><strong>{{ formatInteger(deliveredRows.length) }}</strong><small>строк в исходном файле</small></article>
+          <article class="summary-card"><span class="summary-label">Уникальных заказов</span><strong>{{ formatInteger(uniqueOrders) }}</strong><small>{{ currentMonthLabel }}: {{ formatInteger(currentMetrics.orders) }}</small></article>
           <article class="summary-card"><span class="summary-label">Средняя скидка</span><strong>{{ formatCurrency(averageDiscount) }}</strong><small>{{ currentMonthLabel }}: {{ formatCurrency(currentMetrics.discount) }}</small></article>
-          <article class="summary-card"><span class="summary-label">Товаров заказано</span><strong>{{ formatInteger(totalQuantity) }}</strong><small>{{ formatInteger(uniqueProducts) }} уникальных позиций</small></article>
+          <article class="summary-card"><span class="summary-label">Товарных единиц без сервисных позиций</span><strong>{{ formatInteger(totalQuantity) }}</strong><small>{{ formatInteger(uniqueProducts) }} уникальных позиций</small></article>
         </section>
 
         <section class="panel monthly-panel">

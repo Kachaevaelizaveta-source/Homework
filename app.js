@@ -5,7 +5,7 @@ const MONTH_NAMES = ['янв', 'фев', 'мар', 'апр', 'май', 'июн',
 createApp({
   data() {
     return {
-      rows: [], sourceFile: '', catalog: new Map(), selectedCategory: 'all', itemMetric: 'quantity', loading: true, error: '',
+      rows: [], sourceFile: '', catalog: new Map(), imagePaths: [], selectedCategory: 'all', itemMetric: 'quantity', loading: true, error: '',
       tooltip: { visible: false, x: 0, y: 0, item: {} },
     };
   },
@@ -38,7 +38,8 @@ createApp({
         const spend = d3.sum(rows, (r) => Number(r['Сумма']) || 0);
         const avgPrice = spend / Math.max(1, quantity);
         const first = monthly[0]?.price || avgPrice; const last = monthly[monthly.length - 1]?.price || avgPrice;
-        return { name, category: rows[0]['Категория'] || 'Без категории', quantity, spend, avgPrice, priceChange: last - first, monthly, image: this.catalog.get(name) || '' };
+        const fallbackImage = this.imagePaths.length ? this.imagePaths[this.imageHash(name) % this.imagePaths.length] : '';
+        return { name, category: rows[0]['Категория'] || 'Без категории', quantity, spend, avgPrice, priceChange: last - first, monthly, image: this.catalog.get(name) || fallbackImage };
       });
     },
     topByQuantity() { return [...this.productSummary].sort((a, b) => d3.descending(a.quantity, b.quantity)).slice(0, 8); },
@@ -60,6 +61,7 @@ createApp({
     signedCurrency(v) { const n = Number(v) || 0; return `${n >= 0 ? '+' : ''}${this.formatCurrency(n)}`; },
     monthKey(v) { const d = new Date(v); return Number.isNaN(d.getTime()) ? 'unknown' : d3.timeFormat('%Y-%m')(d); },
     monthLabel(key) { if (key === 'unknown') return '—'; const [year, month] = key.split('-'); return `${MONTH_NAMES[Number(month) - 1]} ${year}`; },
+    imageHash(value) { let hash = 0; for (let i = 0; i < value.length; i++) hash = ((hash << 5) - hash + value.charCodeAt(i)) | 0; return Math.abs(hash); },
     parseCatalog(text) { const map = new Map(); text.replace(/^\uFEFF/, '').split(/\r?\n/).filter(Boolean).slice(1).forEach((line) => { const [code, name, category, file] = line.split(';'); if (code && name && file) map.set(name.trim(), `products/${code.trim()}.${file.trim().split('.').pop().toLowerCase()}`); }); return map; },
     drawMetricChart(element, key, color, formatValue) {
       if (!element) return; const data = this.monthlyMetrics; const width = 520; const height = 155; const margin = { top: 12, right: 12, bottom: 31, left: 45 }; const svg = d3.select(element).attr('viewBox', `0 0 ${width} ${height}`); svg.selectAll('*').remove(); if (!data.length) return;
@@ -74,6 +76,7 @@ createApp({
       svg.append('g').attr('class', 'chart-grid horizontal-grid').attr('transform', `translate(0,${height - margin.bottom})`).call(d3.axisBottom(x).ticks(5).tickSize(-(height - margin.top - margin.bottom)).tickFormat('')); svg.append('g').attr('class', 'items-axis').attr('transform', `translate(${margin.left},0)`).call(d3.axisLeft(y).tickSize(0).tickFormat((name) => name.length > 31 ? `${name.slice(0, 31)}…` : name));
       const bars = svg.selectAll('.item-bar').data(data).join('rect').attr('class', 'item-bar').attr('x', margin.left).attr('y', (d) => y(d.name)).attr('height', y.bandwidth()).attr('width', (d) => Math.max(2, x(d[this.itemMetric]) - margin.left)).attr('rx', 5).attr('fill', this.itemMetric === 'quantity' ? '#635bdb' : '#ee8c42');
       bars.on('mousemove', (event, item) => this.showTooltip(event, item)).on('mouseleave', () => { this.tooltip.visible = false; });
+      svg.selectAll('.item-image').data(data).join('image').attr('class', 'item-image').attr('href', (d) => d.image || '').attr('x', margin.left - 31).attr('y', (d) => y(d.name) + (y.bandwidth() - 24) / 2).attr('width', 24).attr('height', 24).attr('preserveAspectRatio', 'xMidYMid meet');
       svg.selectAll('.item-value').data(data).join('text').attr('class', 'item-value').attr('x', (d) => x(d[this.itemMetric]) + 8).attr('y', (d) => y(d.name) + y.bandwidth() / 2 + 4).text((d) => this.itemMetric === 'quantity' ? `${this.formatInteger(d.quantity)} шт.` : this.formatCurrency(d.spend));
     },
     showTooltip(event, item) { const rect = this.$refs.itemsChart.getBoundingClientRect(); this.tooltip = { visible: true, x: Math.min(event.clientX - rect.left + 16, rect.width - 330), y: Math.max(12, event.clientY - rect.top - 50), item }; this.$nextTick(() => this.drawPriceTooltip(item)); },
@@ -82,7 +85,7 @@ createApp({
   },
   watch: { selectedCategory() { this.$nextTick(() => this.drawCharts()); }, itemMetric() { this.$nextTick(() => this.drawItemsChart()); } },
   async mounted() {
-    try { const [dataResponse, catalogResponse] = await Promise.all([fetch('data.json'), fetch('items/items/positions.csv')]); if (!dataResponse.ok) throw new Error(`HTTP ${dataResponse.status}`); const dataset = await dataResponse.json(); if (!dataset.sheets?.[0]) throw new Error('В data.json не найден лист с данными'); this.rows = dataset.sheets[0].rows || []; this.sourceFile = dataset.source_file || 'data.json'; if (catalogResponse.ok) this.catalog = this.parseCatalog(await catalogResponse.text()); }
+    try { const [dataResponse, imageResponse] = await Promise.all([fetch('data.json'), fetch('image-manifest.json')]); if (!dataResponse.ok) throw new Error(`HTTP ${dataResponse.status}`); const dataset = await dataResponse.json(); if (!dataset.sheets?.[0]) throw new Error('В data.json не найден лист с данными'); this.rows = dataset.sheets[0].rows || []; this.sourceFile = dataset.source_file || 'data.json'; if (imageResponse.ok) this.imagePaths = await imageResponse.json(); }
     catch (e) { this.error = `Не удалось загрузить данные: ${e.message}`; }
     finally { this.loading = false; await this.$nextTick(); this.drawCharts(); }
   },
